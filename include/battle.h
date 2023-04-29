@@ -49,6 +49,10 @@
 #define MOVE_TARGET_FOES_AND_ALLY       (1 << 5)
 #define MOVE_TARGET_OPPONENTS_FIELD     (1 << 6)
 
+#define MOVE_PHYSICAL   0
+#define MOVE_SPECIAL    (1 << 0)
+#define MOVE_STATUS     (1 << 1)
+
 // For the second argument of GetMoveTarget, when no target override is needed
 #define NO_TARGET_OVERRIDE 0
 
