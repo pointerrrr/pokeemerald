@@ -705,6 +705,10 @@ static const u8 sTextColors[][3] =
 static const u8 sAButton_Gfx[] = INCBIN_U8("graphics/summary_screen/a_button.4bpp");
 static const u8 sBButton_Gfx[] = INCBIN_U8("graphics/summary_screen/b_button.4bpp");
 
+static const u8 sPhysical_Gfx[] = INCBIN_U8("graphics/summary_screen/physical.4bpp");
+static const u8 sSpecial_Gfx[] = INCBIN_U8("graphics/summary_screen/special.4bpp");
+static const u8 sStatus_Gfx[] = INCBIN_U8("graphics/summary_screen/status.4bpp");
+
 static void (*const sTextPrinterFunctions[])(void) =
 {
     [PSS_PAGE_INFO] = PrintInfoPageText,
@@ -3553,6 +3557,19 @@ static void PrintMovePowerAndAccuracy(u16 moveIndex)
             text = gStringVar1;
         }
 
+        if (gBattleMoves[moveIndex].category == MOVE_PHYSICAL)
+        {
+            BlitBitmapToWindow(PSS_LABEL_WINDOW_MOVES_POWER_ACC, sPhysical_Gfx, 32, 1, 16, 16);
+        }
+        else if (gBattleMoves[moveIndex].category == MOVE_SPECIAL)
+        {
+            BlitBitmapToWindow(PSS_LABEL_WINDOW_MOVES_POWER_ACC, sSpecial_Gfx, 32, 1, 16, 16);
+        }
+        else if (gBattleMoves[moveIndex].category == MOVE_STATUS)
+        {
+            BlitBitmapToWindow(PSS_LABEL_WINDOW_MOVES_POWER_ACC, sStatus_Gfx, 32, 1, 16, 16);
+        }
+        
         PrintTextOnWindow(PSS_LABEL_WINDOW_MOVES_POWER_ACC, text, 53, 17, 0, 0);
     }
 }
