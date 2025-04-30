@@ -1098,7 +1098,13 @@ static bool8 AccuracyCalcHelper(u16 move)
 
 static void Cmd_accuracycheck(void)
 {
+    bool8 ignoreAccuracy;
     u16 move = T2_READ_16(gBattlescriptCurrInstr + 5);
+
+    ignoreAccuracy = (gBattleMoves[move].effect == EFFECT_FLINCH_MINIMIZE_HIT || gBattleMoves[move].effect == EFFECT_BODY_SLAM)
+        && gStatuses3[gBattlerTarget] | STATUS3_MINIMIZED;
+        ignoreAccuracy |= gBattleMoves[move].effect == EFFECT_BIDE;
+        ignoreAccuracy |= gBattleMoves[move].effect == EFFECT_RECOIL;
 
     if (move == NO_ACC_CALC || move == NO_ACC_CALC_CHECK_LOCK_ON)
     {
@@ -1109,7 +1115,7 @@ static void Cmd_accuracycheck(void)
         else if (!JumpIfMoveAffectedByProtect(0))
             gBattlescriptCurrInstr += 7;
     }
-    else
+    else if (!ignoreAccuracy)
     {
         u8 type, moveAcc, holdEffect, param;
         s8 buff;
@@ -1146,6 +1152,11 @@ static void Cmd_accuracycheck(void)
         if (WEATHER_HAS_EFFECT && gBattleWeather & B_WEATHER_SUN && gBattleMoves[move].effect == EFFECT_THUNDER)
             moveAcc = 50;
 
+        if (WEATHER_HAS_EFFECT && gBattleWeather & B_WEATHER_HAIL && gBattleMoves[move].effect == EFFECT_BLIZZARD)
+            moveAcc = 100;
+
+
+
         calc = sAccuracyStageRatios[buff].dividend * moveAcc;
         calc /= sAccuracyStageRatios[buff].divisor;
 
@@ -1171,9 +1182,9 @@ static void Cmd_accuracycheck(void)
 
         if (holdEffect == HOLD_EFFECT_EVASION_UP)
             calc = (calc * (100 - param)) / 100;
-
+        
         // final calculation
-        if ((Random() % 100 + 1) > calc)
+        if (!ignoreAccuracy && (Random() % 100 + 1) > calc)
         {
             gMoveResultFlags |= MOVE_RESULT_MISSED;
             if (gBattleTypeFlags & BATTLE_TYPE_DOUBLE
@@ -2543,7 +2554,7 @@ void SetMoveEffect(bool8 primary, u8 certain)
                 {
                     gBattleMons[gEffectBattler].status2 |= STATUS2_MULTIPLETURNS;
                     gLockedMoves[gEffectBattler] = gCurrentMove;
-                    gBattleMons[gEffectBattler].status2 |= STATUS2_UPROAR_TURN((Random() & 3) + 2); // 2-5 turns
+                    gBattleMons[gEffectBattler].status2 |= STATUS2_UPROAR_TURN(3); // 3 turns
 
                     BattleScriptPush(gBattlescriptCurrInstr + 1);
                     gBattlescriptCurrInstr = sMoveEffectBS_Ptrs[gBattleCommunication[MOVE_EFFECT_BYTE]];
@@ -2588,7 +2599,7 @@ void SetMoveEffect(bool8 primary, u8 certain)
                 }
                 else
                 {
-                    gBattleMons[gEffectBattler].status2 |= STATUS2_WRAPPED_TURN((Random() & 3) + 3); // 3-6 turns
+                    gBattleMons[gEffectBattler].status2 |= STATUS2_WRAPPED_TURN((Random() & 1) + 4); // 4-5 turns
 
                     *(gBattleStruct->wrappedMove + gEffectBattler * 2 + 0) = gCurrentMove;
                     *(gBattleStruct->wrappedMove + gEffectBattler * 2 + 1) = gCurrentMove >> 8;
@@ -2607,7 +2618,7 @@ void SetMoveEffect(bool8 primary, u8 certain)
                 }
                 break;
             case MOVE_EFFECT_RECOIL_25: // 25% recoil
-                gBattleMoveDamage = (gHpDealt) / 4;
+                gBattleMoveDamage = (gBattleMons[gEffectBattler].maxHP) / 4;
                 if (gBattleMoveDamage == 0)
                     gBattleMoveDamage = 1;
 
@@ -6715,11 +6726,7 @@ static void Cmd_manipulatedamage(void)
         gBattleMoveDamage *= -1;
         break;
     case DMG_RECOIL_FROM_MISS:
-        gBattleMoveDamage /= 2;
-        if (gBattleMoveDamage == 0)
-            gBattleMoveDamage = 1;
-        if ((gBattleMons[gBattlerTarget].maxHP / 2) < gBattleMoveDamage)
-            gBattleMoveDamage = gBattleMons[gBattlerTarget].maxHP / 2;
+        gBattleMoveDamage = gBattleMons[gBattlerTarget].maxHP / 2;
         break;
     case DMG_DOUBLED:
         gBattleMoveDamage *= 2;
@@ -6827,6 +6834,11 @@ static void Cmd_stockpile(void)
     else
     {
         gDisableStructs[gBattlerAttacker].stockpileCounter++;
+
+        if (ChangeStatBuffs(SET_STAT_BUFF_VALUE(1), gBattleCommunication[MOVE_EFFECT_BYTE] - MOVE_EFFECT_DEF_PLUS_1 + 1, MOVE_EFFECT_AFFECTS_USER, 0) == STAT_CHANGE_WORKED)
+            gDisableStructs[gBattlerAttacker].stockpileDef++;
+        if (ChangeStatBuffs(SET_STAT_BUFF_VALUE(1), gBattleCommunication[MOVE_EFFECT_BYTE] - MOVE_EFFECT_SP_DEF_PLUS_1 + 1, MOVE_EFFECT_AFFECTS_USER, 0) == STAT_CHANGE_WORKED)
+            gDisableStructs[gBattlerAttacker].stockpileSpDef++;
 
         PREPARE_BYTE_NUMBER_BUFFER(gBattleTextBuff1, 1, gDisableStructs[gBattlerAttacker].stockpileCounter)
 
@@ -7114,11 +7126,12 @@ static void Cmd_setmultihitcounter(void)
     }
     else
     {
-        gMultiHitCounter = Random() & 3;
-        if (gMultiHitCounter > 1)
-            gMultiHitCounter = (Random() & 3) + 2;
-        else
+        gMultiHitCounter = 2;
+        if (Random() % 20 >= 14)
             gMultiHitCounter += 2;
+
+        if ((Random() & 1) == 1)
+            gMultiHitCounter += 1;
     }
 
     gBattlescriptCurrInstr += 2;
@@ -7789,10 +7802,7 @@ static void Cmd_mimicattackcopy(void)
         if (i == MAX_MON_MOVES)
         {
             gBattleMons[gBattlerAttacker].moves[gCurrMovePos] = gLastMoves[gBattlerTarget];
-            if (gBattleMoves[gLastMoves[gBattlerTarget]].pp < 5)
-                gBattleMons[gBattlerAttacker].pp[gCurrMovePos] = gBattleMoves[gLastMoves[gBattlerTarget]].pp;
-            else
-                gBattleMons[gBattlerAttacker].pp[gCurrMovePos] = 5;
+            gBattleMons[gBattlerAttacker].pp[gCurrMovePos] = gBattleMoves[gLastMoves[gBattlerTarget]].pp;            
 
             PREPARE_MOVE_BUFFER(gBattleTextBuff1, gLastMoves[gBattlerTarget])
 
@@ -7848,9 +7858,8 @@ static void Cmd_psywavedamageeffect(void)
 {
     s32 randDamage;
 
-    while ((randDamage = Random() % 16) > 10);
+    while ((randDamage = Random() % 128) > 100);
 
-    randDamage *= 10;
     gBattleMoveDamage = gBattleMons[gBattlerAttacker].level * (randDamage + 50) / 100;
     gBattlescriptCurrInstr++;
 }
@@ -7919,7 +7928,7 @@ static void Cmd_disablelastusedattack(void)
         PREPARE_MOVE_BUFFER(gBattleTextBuff1, gBattleMons[gBattlerTarget].moves[i])
 
         gDisableStructs[gBattlerTarget].disabledMove = gBattleMons[gBattlerTarget].moves[i];
-        gDisableStructs[gBattlerTarget].disableTimer = (Random() & 3) + 2;
+        gDisableStructs[gBattlerTarget].disableTimer = 4;
         gDisableStructs[gBattlerTarget].disableTimerStartValue = gDisableStructs[gBattlerTarget].disableTimer; // used to save the random amount of turns?
         gBattlescriptCurrInstr += 5;
     }
@@ -7951,7 +7960,7 @@ static void Cmd_trysetencore(void)
     {
         gDisableStructs[gBattlerTarget].encoredMove = gBattleMons[gBattlerTarget].moves[i];
         gDisableStructs[gBattlerTarget].encoredMovePos = i;
-        gDisableStructs[gBattlerTarget].encoreTimer = (Random() & 3) + 3;
+        gDisableStructs[gBattlerTarget].encoreTimer = 4;
         gDisableStructs[gBattlerTarget].encoreTimerStartValue = gDisableStructs[gBattlerTarget].encoreTimer;
         gBattlescriptCurrInstr += 5;
     }
@@ -8243,9 +8252,9 @@ static void Cmd_tryspiteppreduce(void)
                 break;
         }
 
-        if (i != MAX_MON_MOVES && gBattleMons[gBattlerTarget].pp[i] > 1)
+        if (i != MAX_MON_MOVES && gBattleMons[gBattlerTarget].pp[i] > 0)
         {
-            s32 ppToDeduct = (Random() & 3) + 2;
+            s32 ppToDeduct = 4;
             if (gBattleMons[gBattlerTarget].pp[i] < ppToDeduct)
                 ppToDeduct = gBattleMons[gBattlerTarget].pp[i];
 
@@ -8503,7 +8512,7 @@ static void Cmd_furycuttercalc(void)
     {
         s32 i;
 
-        if (gDisableStructs[gBattlerAttacker].furyCutterCounter != 5)
+        if (gDisableStructs[gBattlerAttacker].furyCutterCounter != 3)
             gDisableStructs[gBattlerAttacker].furyCutterCounter++;
 
         gDynamicBasePower = gBattleMoves[gCurrentMove].power;
@@ -8888,13 +8897,11 @@ static void Cmd_trydobeatup(void)
 
             gBattlescriptCurrInstr += 9;
 
-            gBattleMoveDamage = gSpeciesInfo[GetMonData(&party[gBattleCommunication[0]], MON_DATA_SPECIES)].baseAttack;
-            gBattleMoveDamage *= gBattleMoves[gCurrentMove].power;
-            gBattleMoveDamage *= (GetMonData(&party[gBattleCommunication[0]], MON_DATA_LEVEL) * 2 / 5 + 2);
-            gBattleMoveDamage /= gSpeciesInfo[gBattleMons[gBattlerTarget].species].baseDefense;
-            gBattleMoveDamage = (gBattleMoveDamage / 50) + 2;
-            if (gProtectStructs[gBattlerAttacker].helpingHand)
-                gBattleMoveDamage = gBattleMoveDamage * 15 / 10;
+            gDynamicBasePower = gSpeciesInfo[GetMonData(&party[gBattleCommunication[0]], MON_DATA_SPECIES)].baseAttack / 10 + 5;
+            gBattleStruct->dynamicMoveType = TYPE_DARK;
+
+            gBattleMoveDamage = CalculateBaseDamage(&gBattleMons[gBattlerAttacker], &gBattleMons[gBattlerTarget], gCurrentMove,
+                gSideStatuses[GET_BATTLER_SIDE(gBattlerTarget)], gDynamicBasePower, gBattleStruct->dynamicMoveType, gBattlerAttacker, gBattlerTarget);
 
             gBattleCommunication[0]++;
         }

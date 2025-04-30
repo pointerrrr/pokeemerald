@@ -232,6 +232,9 @@ gBattleScriptsForMoveEffects::
 	.4byte BattleScript_EffectCalmMind               @ EFFECT_CALM_MIND
 	.4byte BattleScript_EffectDragonDance            @ EFFECT_DRAGON_DANCE
 	.4byte BattleScript_EffectCamouflage             @ EFFECT_CAMOUFLAGE
+	.4byte BattleScript_EffectBlizzard				 @ EFFECT_BLIZZARD
+	.4byte BattleScript_EffectGrowth				 @ EFFECT_GROWTH
+	.4byte BattleScript_EffectBodySlam				 @ EFFECT_BODY_SLAM
 
 BattleScript_EffectHit::
 	jumpifnotmove MOVE_SURF, BattleScript_HitFromAtkCanceler
@@ -1445,6 +1448,7 @@ BattleScript_EffectMeanLook::
 	attackcanceler
 	attackstring
 	ppreduce
+	jumpiftype2 BS_ATTACKER, TYPE_GHOST, BattleScript_ButItFailed
 	accuracycheck BattleScript_ButItFailed, NO_ACC_CALC
 	jumpifstatus2 BS_TARGET, STATUS2_ESCAPE_PREVENTION, BattleScript_ButItFailed
 	jumpifstatus2 BS_TARGET, STATUS2_SUBSTITUTE, BattleScript_ButItFailed
@@ -1714,7 +1718,7 @@ BattleScript_EffectBatonPass::
 	goto BattleScript_MoveEnd
 
 BattleScript_EffectRapidSpin::
-	setmoveeffect MOVE_EFFECT_RAPIDSPIN | MOVE_EFFECT_AFFECTS_USER | MOVE_EFFECT_CERTAIN
+	setmoveeffect MOVE_EFFECT_RAPIDSPIN | MOVE_EFFECT_AFFECTS_USER | MOVE_EFFECT_CERTAIN | MOVE_EFFECT_SPD_PLUS_1
 	goto BattleScript_EffectHit
 
 BattleScript_EffectSonicboom::
@@ -1900,6 +1904,9 @@ BattleScript_EffectStomp::
 	setbyte sDMG_MULTIPLIER, 2
 	goto BattleScript_FlinchEffect
 
+BattleScript_EffectBodySlam::
+	goto BattleScript_EffectParalyzeHit
+
 BattleScript_EffectSolarBeam::
 	jumpifabilitypresent ABILITY_CLOUD_NINE, BattleScript_SolarBeamDecideTurn
 	jumpifabilitypresent ABILITY_AIR_LOCK, BattleScript_SolarBeamDecideTurn
@@ -1922,11 +1929,16 @@ BattleScript_EffectThunder::
 	orword gHitMarker, HITMARKER_IGNORE_ON_AIR
 	goto BattleScript_EffectHit
 
+BattleScript_EffectBlizzard::
+	setmoveeffect MOVE_EFFECT_FREEZE
+	goto BattleScript_EffectHit
+
 BattleScript_EffectTeleport::
 	attackcanceler
 	attackstring
 	ppreduce
-	jumpifbattletype BATTLE_TYPE_TRAINER, BattleScript_ButItFailed
+	jumpifbyte CMP_EQUAL, gBattlerAttacker, B_SIDE_PLAYER, BattleScript_EffectTeleport2
+	jumpifbattletype BATTLE_TYPE_TRAINER, BattleScript_EffectTeleport2
 	getifcantrunfrombattle BS_ATTACKER
 	jumpifbyte CMP_EQUAL, gBattleCommunication, BATTLE_RUN_FORBIDDEN, BattleScript_ButItFailed
 	jumpifbyte CMP_EQUAL, gBattleCommunication, BATTLE_RUN_FAILURE, BattleScript_PrintAbilityMadeIneffective
@@ -1935,6 +1947,25 @@ BattleScript_EffectTeleport::
 	printstring STRINGID_PKMNFLEDFROMBATTLE
 	waitmessage B_WAIT_TIME_LONG
 	setoutcomeonteleport BS_ATTACKER
+	goto BattleScript_MoveEnd
+
+BattleScript_EffectTeleport2::
+	jumpifbattletype BATTLE_TYPE_ARENA, BattleScript_ButItFailed
+	jumpifcantswitch SWITCH_IGNORE_ESCAPE_PREVENTION | BS_ATTACKER, BattleScript_ButItFailed
+	attackanimation
+	waitanimation
+	openpartyscreen BS_ATTACKER, BattleScript_ButItFailed
+	switchoutabilities BS_ATTACKER
+	waitstate
+	switchhandleorder BS_ATTACKER, 2
+	returntoball BS_ATTACKER
+	getswitchedmondata BS_ATTACKER
+	switchindataupdate BS_ATTACKER
+	hpthresholds BS_ATTACKER
+	printstring STRINGID_SWITCHINMON
+	switchinanim BS_ATTACKER, TRUE
+	waitstate
+	switchineffects BS_ATTACKER
 	goto BattleScript_MoveEnd
 
 BattleScript_EffectBeatUp::
@@ -2794,6 +2825,38 @@ BattleScript_DragonDanceTrySpeed::
 	waitmessage B_WAIT_TIME_LONG
 BattleScript_DragonDanceEnd::
 	goto BattleScript_MoveEnd
+
+BattleScript_EffectGrowth::
+	attackcanceler
+	attackstring
+	ppreduce
+	jumpifstat BS_ATTACKER, CMP_LESS_THAN, STAT_ATK, MAX_STAT_STAGE, BattleScript_GrowthDoStatUpAnim
+	jumpifstat BS_ATTACKER, CMP_EQUAL, STAT_SPATK, MAX_STAT_STAGE, BattleScript_CantRaiseMultipleStats
+BattleScript_GrowthDoStatUpAnim::
+	setbyte sSTAT_ANIM_PLAYED, FALSE
+	playstatchangeanimation BS_ATTACKER, BIT_ATK | BIT_SPATK, 0
+BattleScript_GrowthSetAtkUpLevel::
+	setstatchanger STAT_ATK, 2, FALSE
+	jumpifbyte CMP_COMMON_BITS, gBattleWeather, B_WEATHER_SUN, BattleScript_GrowthTryAtk
+	setstatchanger STAT_ATK, 1, FALSE
+BattleScript_GrowthTryAtk::
+	statbuffchange MOVE_EFFECT_AFFECTS_USER | STAT_CHANGE_ALLOW_PTR, BattleScript_GrowthTrySpAtk
+	jumpifbyte CMP_EQUAL, cMULTISTRING_CHOOSER, B_MSG_STAT_WONT_INCREASE, BattleScript_GrowthTrySpAtk
+	printfromtable gStatUpStringIds
+	waitmessage B_WAIT_TIME_LONG
+BattleScript_GrowthSetSpAtkUpLevel::
+	setstatchanger STAT_SPATK, 2, FALSE
+	jumpifbyte CMP_COMMON_BITS, gBattleWeather, B_WEATHER_SUN, BattleScript_GrowthTrySpAtk
+	setstatchanger STAT_SPATK, 1, FALSE
+BattleScript_GrowthTrySpAtk::
+	statbuffchange MOVE_EFFECT_AFFECTS_USER | STAT_CHANGE_ALLOW_PTR, BattleScript_GrowthEnd
+	jumpifbyte CMP_EQUAL, cMULTISTRING_CHOOSER, B_MSG_STAT_WONT_INCREASE, BattleScript_GrowthEnd
+	printfromtable gStatUpStringIds
+	waitmessage B_WAIT_TIME_LONG
+	goto BattleScript_GrowthEnd
+BattleScript_GrowthEnd::
+	goto BattleScript_MoveEnd
+
 
 BattleScript_EffectCamouflage::
 	attackcanceler

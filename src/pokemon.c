@@ -3211,10 +3211,9 @@ s32 CalculateBaseDamage(struct BattlePokemon *attacker, struct BattlePokemon *de
         gBattleMovePower = (150 * gBattleMovePower) / 100;
     if (type == TYPE_BUG && attacker->ability == ABILITY_SWARM && attacker->hp <= (attacker->maxHP / 3))
         gBattleMovePower = (150 * gBattleMovePower) / 100;
-
-    // Self-destruct / Explosion cut defense in half
-    if (gBattleMoves[gCurrentMove].effect == EFFECT_EXPLOSION)
-        defense /= 2;
+    
+    if(gBattleTypeFlags | B_WEATHER_SANDSTORM && (defender->type1 == TYPE_ROCK || defender->type2 == TYPE_ROCK))
+        spDefense = (150 * spDefense) / 100;
 
     if (IS_TYPE_PHYSICAL(type))
     {
@@ -3345,6 +3344,15 @@ s32 CalculateBaseDamage(struct BattlePokemon *attacker, struct BattlePokemon *de
                     break;
                 case TYPE_WATER:
                     damage /= 2;
+                    break;
+                }
+            }
+
+            if(gBattleWeather & B_WEATHER_SANDSTORM)
+            {
+                switch (type)
+                {
+                case TYPE_ROCK:
                     break;
                 }
             }
