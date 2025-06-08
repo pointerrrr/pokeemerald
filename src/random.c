@@ -7,6 +7,7 @@ EWRAM_DATA static u32 sRandCount = 0;
 // IWRAM common
 COMMON_DATA u32 gRngValue = 0;
 COMMON_DATA u32 gRng2Value = 0;
+COMMON_DATA u32 gRng3Value = 0;
 
 u16 Random(void)
 {
@@ -30,4 +31,15 @@ u16 Random2(void)
 {
     gRng2Value = ISO_RANDOMIZE1(gRng2Value);
     return gRng2Value >> 16;
+}
+
+void SeedRng3(u32 seed)
+{
+    gRng3Value = seed;
+}
+
+u16 Random3(void)
+{
+    gRng3Value = ISO_RANDOMIZE1(gRng3Value);
+    return gRng3Value >> 16;
 }
