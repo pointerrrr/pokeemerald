@@ -27,6 +27,7 @@ struct WildPokemonHeader
 };
 
 extern const struct WildPokemonHeader gWildMonHeaders[];
+extern struct WildPokemonHeader sWildMonHeader;
 
 void DisableWildEncounters(bool8 disabled);
 bool8 StandardWildEncounter(u16 curMetatileBehavior, u16 prevMetatileBehavior);
@@ -36,5 +37,6 @@ void FishingWildEncounter(u8 rod);
 u16 GetLocalWildMon(bool8 *isWaterMon);
 u16 GetLocalWaterMon(void);
 bool8 UpdateRepelCounter(void);
+void GenerateWildMonHeader(u16 headerId);
 
 #endif // GUARD_WILD_ENCOUNTER_H

@@ -285,21 +285,23 @@ static void FindMapsWithMon(u16 species)
         }
 
         // Add regular species to the area map
-        for (i = 0; gWildMonHeaders[i].mapGroup != MAP_GROUP(MAP_UNDEFINED); i++)
+        GenerateWildMonHeader(0);
+        for (i = 0; sWildMonHeader.mapGroup != MAP_GROUP(MAP_UNDEFINED); i++)
         {
-            if (MapHasSpecies(&gWildMonHeaders[i], species))
+            if (MapHasSpecies(&sWildMonHeader, species))
             {
-                switch (gWildMonHeaders[i].mapGroup)
+                switch (sWildMonHeader.mapGroup)
                 {
                 case MAP_GROUP_TOWNS_AND_ROUTES:
-                    SetAreaHasMon(gWildMonHeaders[i].mapGroup, gWildMonHeaders[i].mapNum);
+                    SetAreaHasMon(sWildMonHeader.mapGroup, sWildMonHeader.mapNum);
                     break;
                 case MAP_GROUP_DUNGEONS:
                 case MAP_GROUP_SPECIAL_AREA:
-                    SetSpecialMapHasMon(gWildMonHeaders[i].mapGroup, gWildMonHeaders[i].mapNum);
+                    SetSpecialMapHasMon(sWildMonHeader.mapGroup, sWildMonHeader.mapNum);
                     break;
                 }
             }
+            GenerateWildMonHeader(i + 1);
         }
     }
     else

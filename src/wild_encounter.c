@@ -69,20 +69,20 @@ EWRAM_DATA static u32 sFeebasRngValue = 0;
 
 static const struct WildPokemon sWildFeebas = {20, 25, SPECIES_FEEBAS};
 
-EWRAM_DATA static bool8 initialized = FALSE;
-EWRAM_DATA static u16 lastLoadedHeader = HEADER_NONE;
+EWRAM_DATA bool8 initialized = FALSE;
+EWRAM_DATA u16 lastLoadedHeader = HEADER_NONE;
 
-EWRAM_DATA static struct WildPokemon sLandMons[LAND_WILD_COUNT] = {0};
-EWRAM_DATA static struct WildPokemon sWaterMons[WATER_WILD_COUNT] = {0};
-EWRAM_DATA static struct WildPokemon sRockSmashMons[ROCK_WILD_COUNT] = {0};
-EWRAM_DATA static struct WildPokemon sFishingMons[FISH_WILD_COUNT] = {0};
+EWRAM_DATA struct WildPokemon sLandMons[LAND_WILD_COUNT] = {0};
+EWRAM_DATA struct WildPokemon sWaterMons[WATER_WILD_COUNT] = {0};
+EWRAM_DATA struct WildPokemon sRockSmashMons[ROCK_WILD_COUNT] = {0};
+EWRAM_DATA struct WildPokemon sFishingMons[FISH_WILD_COUNT] = {0};
 
-EWRAM_DATA static struct WildPokemonInfo sLandMonsInfo = {0};
-EWRAM_DATA static struct WildPokemonInfo sWaterMonsInfo = {0};
-EWRAM_DATA static struct WildPokemonInfo sRockSmashMonsInfo = {0};
-EWRAM_DATA static struct WildPokemonInfo sFishingMonsInfo = {0};
+EWRAM_DATA struct WildPokemonInfo sLandMonsInfo = {0};
+EWRAM_DATA struct WildPokemonInfo sWaterMonsInfo = {0};
+EWRAM_DATA struct WildPokemonInfo sRockSmashMonsInfo = {0};
+EWRAM_DATA struct WildPokemonInfo sFishingMonsInfo = {0};
 
-EWRAM_DATA static struct WildPokemonHeader sWildMonHeader = {0};
+EWRAM_DATA struct WildPokemonHeader sWildMonHeader = {0};
 
 static const u16 sRoute119WaterTileData[] =
 {

@@ -1748,31 +1748,34 @@ static void PopulateSpeciesFromTrainerLocation(int matchCallId, u8 *destStr)
     u8 slot;
     int i = 0;
 
-    if (gWildMonHeaders[i].mapGroup != MAP_GROUP(MAP_UNDEFINED)) // ??? This check is nonsense.
+    GenerateWildMonHeader(i);
+
+    if (sWildMonHeader.mapGroup != MAP_GROUP(MAP_UNDEFINED)) // ??? This check is nonsense.
     {
-        while (gWildMonHeaders[i].mapGroup != MAP_GROUP(MAP_UNDEFINED))
+        while (sWildMonHeader.mapGroup != MAP_GROUP(MAP_UNDEFINED))
         {
-            if (gWildMonHeaders[i].mapGroup == gRematchTable[matchCallId].mapGroup
-             && gWildMonHeaders[i].mapNum == gRematchTable[matchCallId].mapNum)
+            if (sWildMonHeader.mapGroup == gRematchTable[matchCallId].mapGroup
+             && sWildMonHeader.mapNum == gRematchTable[matchCallId].mapNum)
                 break;
 
             i++;
+            GenerateWildMonHeader(i);
         }
 
-        if (gWildMonHeaders[i].mapGroup != MAP_GROUP(MAP_UNDEFINED))
+        if (sWildMonHeader.mapGroup != MAP_GROUP(MAP_UNDEFINED))
         {
             numSpecies = 0;
-            if (gWildMonHeaders[i].landMonsInfo)
+            if (sWildMonHeader.landMonsInfo)
             {
                 slot = GetLandEncounterSlot();
-                species[numSpecies] = gWildMonHeaders[i].landMonsInfo->wildPokemon[slot].species;
+                species[numSpecies] = sWildMonHeader.landMonsInfo->wildPokemon[slot].species;
                 numSpecies++;
             }
 
-            if (gWildMonHeaders[i].waterMonsInfo)
+            if (sWildMonHeader.waterMonsInfo)
             {
                 slot = GetWaterEncounterSlot();
-                species[numSpecies] = gWildMonHeaders[i].waterMonsInfo->wildPokemon[slot].species;
+                species[numSpecies] = sWildMonHeader.waterMonsInfo->wildPokemon[slot].species;
                 numSpecies++;
             }
 
